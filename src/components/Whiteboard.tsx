@@ -1163,6 +1163,122 @@ export const Whiteboard = ({ initialData }: WhiteboardProps) => {
         }
     }, [addObjectToStorage, addActionToUndoStack]);
 
+    // --- Helper Function to Trigger Download from Data URL ---
+    const triggerDownload = useCallback((dataUrl: string, filename: string) => {
+        try {
+            // Create a temporary anchor element
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = filename;
+            
+            // Append to document, click, and remove
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            console.log(`[Download] Triggered download for: ${filename}`);
+        } catch (error) {
+            console.error("[Download] Error triggering download:", error);
+        }
+    }, []); // No dependencies needed
+
+    // --- Export Handlers ---
+    const handleExportPng = useCallback(() => {
+        const canvas = fabricRef.current;
+        if (!canvas) {
+            console.error("[Export PNG] Canvas not initialized");
+            return;
+        }
+
+        try {
+            // Generate high-quality PNG data URL
+            const dataURL = canvas.toDataURL({
+                format: 'png',
+                quality: 1,
+                multiplier: 2, // Higher resolution export
+                enableRetinaScaling: true,
+                withoutTransform: false, // Include transformations
+                withoutShadow: false, // Include shadows
+                withoutBackground: false // Include background
+            });
+
+            if (!dataURL) {
+                console.error("[Export PNG] Failed to generate data URL");
+                return;
+            }
+
+            // Create filename with timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `whiteboard-${timestamp}.png`;
+            
+            // Trigger download
+            triggerDownload(dataURL, filename);
+            console.log("[Export PNG] Export successful");
+        } catch (error) {
+            console.error("[Export PNG] Error during export:", error);
+        }
+    }, [triggerDownload]);
+
+    const handleExportSvg = useCallback(() => {
+        const canvas = fabricRef.current;
+        if (!canvas) {
+            console.error("[Export SVG] Canvas not initialized");
+            return;
+        }
+
+        let objectUrl: string | null = null;
+
+        try {
+            // Generate SVG data with proper configuration
+            const svgData = canvas.toSVG({
+                suppressPreamble: false, // Include XML declaration
+                viewBox: {
+                    x: 0,
+                    y: 0,
+                    width: canvas.width,
+                    height: canvas.height
+                },
+                encoding: 'UTF-8',
+                width: canvas.width,
+                height: canvas.height,
+                preserveAspectRatio: 'xMidYMid meet',
+                enableRetinaScaling: true,
+                includeDefaultValues: true,
+                includeCustomProperties: true
+            });
+
+            if (!svgData) {
+                console.error("[Export SVG] Failed to generate SVG data");
+                return;
+            }
+
+            // Create a Blob from the SVG data with proper MIME type
+            const blob = new Blob([svgData], { 
+                type: 'image/svg+xml;charset=utf-8'
+            });
+            
+            // Create an Object URL from the Blob
+            objectUrl = URL.createObjectURL(blob);
+
+            // Create filename with timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `whiteboard-${timestamp}.svg`;
+            
+            // Trigger download
+            triggerDownload(objectUrl, filename);
+
+            console.log("[Export SVG] Export successful");
+        } catch (error) {
+            console.error("[Export SVG] Error during export:", error);
+        } finally {
+            // Clean up the Object URL
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+                console.log("[Export SVG] Object URL revoked");
+            }
+        }
+    }, [triggerDownload]);
+
     // --- Conditional Rendering Based on Connection State (remains the same) ---
     // if (connectionState === 'connecting' || connectionState === 'reconnecting') {
     //     return (<div className="w-full h-full flex items-center justify-center bg-neutral-100"><p className="text-muted-foreground animate-pulse">Connecting to whiteboard...</p></div>);
@@ -1203,6 +1319,8 @@ export const Whiteboard = ({ initialData }: WhiteboardProps) => {
                     setActiveTool={setActiveTool}
                     onUndo={handleUndo}
                     onRedo={handleRedo}
+                    onExportPng={handleExportPng}
+                    onExportSvg={handleExportSvg}
                 />
             </div>
 

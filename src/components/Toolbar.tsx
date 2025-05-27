@@ -11,6 +11,8 @@ import {
   Circle,
   Undo2,
   Redo2,
+  FileImage,
+  FileCode2,
 } from 'lucide-react';
 import { AuthButtons } from './AuthButtons';
 
@@ -28,10 +30,18 @@ interface ToolbarProps {
   setActiveTool: React.Dispatch<React.SetStateAction<Tool>>;
   onUndo: () => void;
   onRedo: () => void;
-  onClear: () => void;
+  onExportPng: () => void;
+  onExportSvg: () => void;
 }
 
-export const Toolbar = ({ activeTool, setActiveTool, onUndo, onRedo }: ToolbarProps) => {
+export const Toolbar = ({ 
+  activeTool, 
+  setActiveTool, 
+  onUndo, 
+  onRedo,
+  onExportPng,
+  onExportSvg 
+}: ToolbarProps) => {
     const renderToolButton = (
     tool: Tool,
     Icon: React.ElementType,
@@ -65,6 +75,29 @@ export const Toolbar = ({ activeTool, setActiveTool, onUndo, onRedo }: ToolbarPr
         <Button onClick={onRedo} variant="ghost" size="icon" aria-label="Redo" title="Redo">
           <Redo2 className="h-5 w-5" />
         </Button>
+
+        {/* Export Buttons */}
+        <div className="flex items-center gap-x-1 border-l pl-2 border-gray-200">
+          <span className="text-xs text-muted-foreground mr-1">Export:</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onExportPng}
+            aria-label="Export as PNG"
+            title="Export as PNG"
+          >
+            <FileImage className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onExportSvg}
+            aria-label="Export as SVG"
+            title="Export as SVG"
+          >
+            <FileCode2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Auth Buttons */}
