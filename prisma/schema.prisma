@@ -17,13 +17,17 @@ datasource db {
 model Whiteboard {
   id        String   @id @default(cuid())
   roomId    String   @unique
+  name      String   // User-friendly name for the whiteboard
   boardData Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Optional: Add relation to User model later for ownership
-  // userId    String?
-  // user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Add the relationship to the User model
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Add an index for faster lookups by userId
+  @@index([userId])
 }
 
 // --- NextAuth.js Models ---
@@ -37,8 +41,9 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
-  // Optional: Relation back to Whiteboards if implementing ownership
-  // whiteboards   Whiteboard[]
+  
+  // Add relation to Whiteboards
+  whiteboards   Whiteboard[]
 }
 
 // Model for OAuth Accounts linked to Users
