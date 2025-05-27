@@ -1016,30 +1016,46 @@ export const Whiteboard = ({ initialData }: WhiteboardProps) => {
         }
     }, []); // Empty dependency array since this should only run once
 
-    // Modify the tool change effect to properly configure each tool
+    // Update ref when activeTool changes
+    useEffect(() => {
+        activeToolRef.current = activeTool;
+        console.log("Active tool updated:", activeTool);
+    }, [activeTool]);
+
+    // Single consolidated effect for tool changes
     useEffect(() => {
         const canvas = fabricRef.current;
         if (!canvas) return;
+
+        console.log("Configuring canvas for tool:", activeTool);
+
+        // Reset canvas state
+        canvas.isDrawingMode = false;
+        canvas.selection = false;
+        canvas.forEachObject(obj => {
+            obj.set({ 
+                evented: false, 
+                selectable: false,
+                erasable: false 
+            });
+        });
 
         // Configure canvas based on active tool
         switch (activeTool) {
             case 'pen':
                 console.log("Setting pen tool");
                 canvas.isDrawingMode = true;
-                canvas.selection = false;
                 canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
                 canvas.freeDrawingBrush.color = DEFAULT_PEN_COLOR;
                 canvas.freeDrawingBrush.width = DEFAULT_PEN_WIDTH;
                 canvas.freeDrawingBrush.strokeUniform = DEFAULT_PEN_STROKE_UNIFORM;
                 canvas.defaultCursor = 'crosshair';
                 canvas.hoverCursor = 'crosshair';
-                canvas.forEachObject(obj => obj.set({ evented: false, selectable: false }));
                 break;
 
             case 'eraser':
                 console.log("Setting eraser tool");
                 canvas.isDrawingMode = true;
-                canvas.selection = false;
                 const eraserBrush = new fabric.PencilBrush(canvas);
                 eraserBrush.width = DEFAULT_ERASER_WIDTH;
                 eraserBrush.color = 'rgba(0,0,0,0)';
@@ -1049,8 +1065,6 @@ export const Whiteboard = ({ initialData }: WhiteboardProps) => {
                 canvas.hoverCursor = 'cell';
                 canvas.forEachObject(obj => {
                     obj.set({
-                        evented: false,
-                        selectable: false,
                         erasable: true,
                         excludeFromExport: false,
                         strokeUniform: true
@@ -1060,53 +1074,40 @@ export const Whiteboard = ({ initialData }: WhiteboardProps) => {
 
             case 'select':
                 console.log("Setting select tool");
-                canvas.isDrawingMode = false;
                 canvas.selection = true;
                 canvas.defaultCursor = 'default';
                 canvas.hoverCursor = 'move';
                 canvas.forEachObject(obj => {
                     obj.set({ 
                         evented: true, 
-                        selectable: true,
-                        erasable: false 
+                        selectable: true
                     });
                 });
                 break;
 
             case 'rectangle':
-                console.log("Setting rectangle tool");
-                canvas.isDrawingMode = false;
-                canvas.selection = false;
+            case 'circle':
+                console.log(`Setting ${activeTool} tool`);
                 canvas.defaultCursor = 'crosshair';
                 canvas.hoverCursor = 'crosshair';
-                canvas.forEachObject(obj => {
-                    obj.set({ 
-                        evented: false, 
-                        selectable: false,
-                        erasable: false 
-                    });
-                });
                 break;
 
             case 'text':
                 console.log("Setting text tool");
-                canvas.isDrawingMode = false;
-                canvas.selection = false;
                 canvas.defaultCursor = 'text';
                 canvas.hoverCursor = 'text';
                 canvas.forEachObject(obj => {
-                    obj.set({ 
-                        evented: obj.type === 'i-text',
-                        selectable: obj.type === 'i-text',
-                        erasable: false 
-                    });
+                    if (obj.type === 'i-text') {
+                        obj.set({ 
+                            evented: true, 
+                            selectable: true
+                        });
+                    }
                 });
                 break;
 
             default:
                 console.log("Setting default tool");
-                canvas.isDrawingMode = false;
-                canvas.selection = false;
                 canvas.defaultCursor = 'default';
                 canvas.hoverCursor = 'default';
         }
@@ -1189,128 +1190,6 @@ export const Whiteboard = ({ initialData }: WhiteboardProps) => {
     //     );
     // }
     if (connectionState !== 'connected') { /* ... loading ... */ }
-
-    // Update ref when activeTool changes
-    useEffect(() => {
-        activeToolRef.current = activeTool;
-        console.log("Active tool updated:", activeTool);
-    }, [activeTool]);
-
-    // Update canvas configuration when activeTool changes
-    useEffect(() => {
-        const canvas = fabricRef.current;
-        if (!canvas) return;
-
-        canvas.isDrawingMode = false;
-        console.log("Configuring canvas for tool:", activeToolRef.current);
-
-        // Configure canvas based on active tool
-        switch (activeToolRef.current) {
-            case 'pen':
-                console.log("Setting pen tool");
-                canvas.isDrawingMode = true;
-                canvas.selection = false;
-                canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-                canvas.freeDrawingBrush.color = DEFAULT_PEN_COLOR;
-                canvas.freeDrawingBrush.width = DEFAULT_PEN_WIDTH;
-                canvas.freeDrawingBrush.strokeUniform = DEFAULT_PEN_STROKE_UNIFORM;
-                canvas.defaultCursor = 'crosshair';
-                canvas.hoverCursor = 'crosshair';
-                canvas.forEachObject(obj => obj.set({ evented: false, selectable: false }));
-                break;
-
-            case 'eraser':
-                console.log("Setting eraser tool");
-                canvas.isDrawingMode = true;
-                canvas.selection = false;
-                const eraserBrush = new fabric.PencilBrush(canvas);
-                eraserBrush.width = DEFAULT_ERASER_WIDTH;
-                eraserBrush.color = 'rgba(0,0,0,0)';
-                eraserBrush.globalCompositeOperation = 'destination-out';
-                canvas.freeDrawingBrush = eraserBrush;
-                canvas.defaultCursor = 'cell';
-                canvas.hoverCursor = 'cell';
-                canvas.forEachObject(obj => {
-                    obj.set({
-                        evented: false,
-                        selectable: false,
-                        erasable: true,
-                        excludeFromExport: false,
-                        strokeUniform: true
-                    });
-                });
-                break;
-
-            case 'select':
-                console.log("Setting select tool");
-                canvas.isDrawingMode = false;
-                canvas.selection = true;
-                canvas.defaultCursor = 'default';
-                canvas.hoverCursor = 'move';
-                canvas.forEachObject(obj => {
-                    obj.set({ 
-                        evented: true, 
-                        selectable: true,
-                        erasable: false 
-                    });
-                });
-                break;
-
-            case 'rectangle':
-                console.log("Setting rectangle tool");
-                canvas.isDrawingMode = false;
-                canvas.selection = false;
-                canvas.defaultCursor = 'crosshair';
-                canvas.hoverCursor = 'crosshair';
-                canvas.forEachObject(obj => {
-                    obj.set({ 
-                        evented: false, 
-                        selectable: false,
-                        erasable: false 
-                    });
-                });
-                break;
-
-            case 'circle':
-                console.log("Setting circle tool");
-                canvas.isDrawingMode = false;
-                canvas.selection = false;
-                canvas.defaultCursor = 'crosshair';
-                canvas.hoverCursor = 'crosshair';
-                canvas.forEachObject(obj => {
-                    obj.set({ 
-                        evented: false, 
-                        selectable: false,
-                        erasable: false 
-                    });
-                });
-                break;
-
-            case 'text':
-                console.log("Setting text tool");
-                canvas.isDrawingMode = false;
-                canvas.selection = false;
-                canvas.defaultCursor = 'text';
-                canvas.hoverCursor = 'text';
-                canvas.forEachObject(obj => {
-                    obj.set({ 
-                        evented: obj.type === 'i-text',
-                        selectable: obj.type === 'i-text',
-                        erasable: false 
-                    });
-                });
-                break;
-
-            default:
-                console.log("Setting default tool");
-                canvas.isDrawingMode = false;
-                canvas.selection = false;
-                canvas.defaultCursor = 'default';
-                canvas.hoverCursor = 'default';
-        }
-
-        canvas.requestRenderAll();
-    }, [activeTool]);
 
     return (
         <main
